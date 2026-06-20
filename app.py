@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from groq import Groq
 from gtts import gTTS
 import requests
+import PyPDF2
 
 app = Flask(__name__)
 
@@ -13,6 +14,7 @@ with open("search_key.txt") as f:
 
 client = Groq(api_key=api_key)
 conversation_history = []
+uploaded_file_text = ""
 
 def web_search(query):
     url = "https://google.serper.dev/search"
@@ -30,13 +32,25 @@ def web_search(query):
 def home():
     return render_template("index.html")
 
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    global uploaded_file_text
+    file = request.files["file"]
+    file.save("uploaded.pdf")
+    reader = PyPDF2.PdfReader("uploaded.pdf")
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    uploaded_file_text = text[:3000]
+    return jsonify({"status": "File uploaded successfully"})
+
 @app.route("/chat", methods=["POST"])
 def chat_response():
     user_message = request.json.get("message")
     
-    search_results = web_search(user_message)
-    
-    context_message = f"Use this current information if relevant: {search_results}\n\nUser question: {user_message}"
+    context_message = user_message
+    if uploaded_file_text:
+        context_message = f"Document content: {uploaded_file_text}\n\nQuestion: {user_message}"
     
     conversation_history.append({"role": "user", "content": context_message})
     

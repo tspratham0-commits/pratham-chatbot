@@ -1,0 +1,48 @@
+import streamlit as st
+import ollama
+
+st.set_page_config(page_title="My Private AI", page_icon="🤖")
+st.title("🤖 My First Private AI Assistant")
+st.caption("Running safely inside my M4 MacBook Air")
+
+if "ai_plan" not in st.session_state:
+    st.session_state.ai_plan = ""
+if "step" not in st.session_state:
+    st.session_state.step = "input"
+
+if st.session_state.step == "input":
+    user_goal = st.text_input("What goal do you want the AI to plan?", placeholder="e.g., Plan a 3-day workout routine")
+    
+    if st.button("Generate Action Plan"):
+        if user_goal:
+            with st.spinner("M4 chip is thinking..."):
+                prompt = f"Act as an automation agent. Create a strict, concise step-by-step plan to achieve this goal: '{user_goal}'."
+                response = ollama.chat(model='llama3.1:8b', messages=[{'role': 'user', 'content': prompt}])
+                st.session_state.ai_plan = response['message']['content']
+                st.session_state.step = "approval"
+                st.rerun()
+        else:
+            st.warning("Please type a goal first!")
+
+elif st.session_state.step == "approval":
+    st.warning("⚠️ SAFETY PAUSE: Review the plan below before granting permission.")
+    st.info(st.session_state.ai_plan)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✅ APPROVE PLAN", type="primary"):
+            st.session_state.step = "success"
+            st.rerun()
+    with col2:
+        if st.button("❌ DENY & CANCEL", type="secondary"):
+            st.session_state.ai_plan = ""
+            st.session_state.step = "input"
+            st.rerun()
+
+elif st.session_state.step == "success":
+    st.success("🎉 Plan Approved! Execution permission granted.")
+    st.balloons()
+    if st.button("Start New Task"):
+        st.session_state.ai_plan = ""
+        st.session_state.step = "input"
+        st.rerun()

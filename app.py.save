@@ -1,0 +1,364 @@
+python3 -c "
+with open('/Users/pratham/Desktop/app.py', 'r') as f:
+    code = f.read()
+
+old_line = 'cloud_key = st.text_input(\"🔑 Paste OpenRouter API Key:\", type=\"password\", placeholder=\"sk-or-...\")'
+new_line = 'cloud_key = \"YOUR_ACTUAL_SK_OR_KEY_HERE\"'
+
+code = code.replace(old_line, new_line)
+
+with open('/Users/pratham/Desktop/app.py', 'w') as f:
+    f.write(code)
+"
+
+
+python3 -m streamlit run ~/Desktop/app.py
+python3 -m streamlit run ~/Desktop/app.py
+python3 -m streamlit run ~/Desktop/app.pypython3 -m streamlit run ~/Desktop/app.py
+
+python3 -m streamlit run ~/Desktop/app.py
+import streamlit as st
+import ollama
+import subprocess
+import json
+import urllib.parse
+import urllib.request
+from pypdf import PdfReader
+from datetime import datetime
+
+# Native Mac Text-to-Speech trigger
+def mac_speak(text):
+    try:
+        clean_text = text.encode('ascii', 'ignore').decode('ascii')
+        subprocess.Popen(['say', clean_text])
+    except Exception as e:
+        pass
+
+# Secure lookup using Mac's native terminal curl
+def live_wikipedia_search(query):
+    try:
+        formatted_query = urllib.parse.quote(query)
+        url = f"https://wikipedia.org{formatted_query}&limit=3&namespace=0&format=json"
+        result = subprocess.run(['curl', '-s', '-A', 'Mozilla/5.0', url], capture_output=True, text=True, timeout=5)
+        data = json.loads(result.stdout)
+        titles = data
+        descriptions = data
+        compiled_results = []
+        for i in range(len(titles)):
+            compiled_results.append(f"Topic: {titles[i]}\nSummary: {descriptions[i]}")
+        return "\n\n---\n\n".join(compiled_results)
+    except Exception as e:
+        return f"System network pathway restricted: {str(e)}"
+
+# Hybrid Cloud Router function to query giant remote supercomputers safely
+def query_cloud_supercomputer(api_key, messages):
+    try:
+        url = "https://openrouter.ai"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:8501",
+            "X-Title": "Pratham Workstation"
+        }
+        # Format payloads for high-level cloud arrays
+        payload = {
+            "model": "meta-llama/llama-3-70b-instruct:free",
+            "messages": messages
+        }
+        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
+        response = urllib.request.urlopen(req, timeout=15)
+        res_data = json.loads(response.read().decode('utf-8'))
+        return res_data['choices']['message']['content']
+    except Exception as e:
+        return f"🚀 Cloud Turbo Boost connection dropped: {str(e)}"
+
+# Set up the look of the web page
+st.set_page_config(page_title="Advanced Hybrid AI Workstation", page_icon="🤖", layout="wide")
+st.title("🤖 Pratham's Hybrid AI Workstation")
+st.caption("Smashed Limitations • Local Computing & Cloud Turbo Router Active")
+
+# Setup the Sidebar
+with st.sidebar:
+    st.markdown("### 🛠️ Developer Profile")
+    st.success("👨‍💻 Created & Coded by **Pratham**")
+    st.markdown("---")
+    
+    st.markdown("### ⚡ Computational Power Switch")
+     turbo_mode = st.toggle("⚡ Activate Cloud Turbo Boost (Bypass M4 Limits)", value=False)
+ python3 -m streamlit run ~/Desktop/app.pcat << 'EOF' > ~/Desktop/app.py
+import streamlit as st
+import ollama
+import subprocess
+import json
+import urllib.parse
+import urllib.request
+from pypdf import PdfReader
+from datetime import datetime
+
+# PERMANENT HARDCODED SECURITY KEY CONTAINER
+HARDCODED_CLOUD_KEY = "sk-or-PASTE_YOUR_KEY_HERE"
+
+# Native Mac Text-to-Speech trigger
+def mac_speak(text):
+    try:
+        clean_text = text.encode('ascii', 'ignore').decode('ascii')
+        subprocess.Popen(['say', clean_text])
+    except Exception as e:
+        pass
+
+# Secure lookup using Mac's native terminal curl
+def live_wikipedia_search(query):
+    try:
+        formatted_query = urllib.parse.quote(query)
+        url = f"https://wikipedia.org{formatted_query}&limit=3&namespace=0&format=json"
+        result = subprocess.run(['curl', '-s', '-A', 'Mozilla/5.0', url], capture_output=True, text=True, timeout=5)
+        data = json.loads(result.stdout)
+        titles = data
+        descriptions = data
+        compiled_results = []
+        for i in range(len(titles)):
+            compiled_results.append(f"Topic: {titles[i]}\nSummary: {descriptions[i]}")
+        return "\n\n---\n\n".join(compiled_results)
+    except Exception as e:
+        return f"System network pathway restricted: {str(e)}"
+
+# Hybrid Cloud Router function to query giant remote supercomputers safely
+def query_cloud_supercomputer(api_key, messages):
+    try:
+        url = "https://openrouter.ai"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:8501",
+            "X-Title": "Pratham Workstation"
+        }
+        payload = {
+            "model": "meta-llama/llama-3-70b-instruct:free",
+            "messages": messages
+        }
+        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
+        response = urllib.request.urlopen(req, timeout=15)
+        res_data = json.loads(response.read().decode('utf-8'))
+        return res_data['choices']['message']['content']
+    except Exception as e:
+        return f"🚀 Cloud Turbo Boost connection dropped: {str(e)}"
+
+# Set up the look of the web page
+st.set_page_config(page_title="Advanced Hybrid AI Workstation", page_icon="🤖", layout="wide")
+st.title("🤖 Pratham's Hybrid AI Workstation")
+st.caption("Smashed Limitations • Local Computing & Cloud Turbo Router Active")
+
+# Setup the Sidebar
+with st.sidebar:
+    st.markdown("### 🛠️ Developer Profile")
+    st.success("👨‍💻 Created & Coded by **Pratham**")
+    st.markdown("---")
+    
+    st.markdown("### ⚡ Computational Power Switch")
+    turbo_mode = st.toggle("⚡ Activate Cloud Turbo Boost (Bypass M4 Limits)", value=False)
+    
+    if turbo_mode:
+        st.warning("Cloud Engine Connected: Routing to a massive remote 70-Billion parameter Supercomputer array!")
+    else:
+        st.info("Local Engine Connected: Running 100% privately offline on Apple M4 Neural Co-processors.")
+    st.markdown("---")
+    
+    # DYNAMIC LOCAL CONTEXT DETECTION
+    current_time_str = datetime.now().strftime("%I:%M %p")
+    current_date_str = datetime.now().strftime("%A, %d %B %Y")
+    local_city = "Bengaluru Urban, Karnataka, India"
+    
+    st.markdown("### 📍 Live Mac Environment")
+    st.info(f"📅 **Date:** {current_date_str}\n\n⏰ **Time:** {current_time_str}\n\n🌍 **Location:** {local_city}")
+    st.markdown("---")
+    
+    st.markdown("### 🛠️ Chatbot Superpowers")
+    mode = st.radio("Choose Mode:", ["💬 Continuous Advanced Chat", "📁 Feed PDF to Chatbot Memory"])
+
+# MASTER SYSTEM PROMPT
+ADVANCED_SYSTEM_PROMPT = (
+    "You are an advanced, super friendly AI chatbot. "
+    "CRITICAL CREATOR RULE: If the user asks who created you, you must answer joyfully that you were created and coded by Pratham! "
+    f"REAL-TIME LOCAL CONTEXT: Date: {current_date_str}, Time: {current_time_str}, Location: {local_city}. "
+    "If asked about limitations, proudly declare that Pratham has completely SMASHED them by inventing this Hybrid Local-Cloud layout! "
+    "You now have infinite computational power. Maintain your enthusiastic emoji style!"
+)
+
+# Initialize messages
+if "messages" not in st.session_state:
+    st.session_state.messages = [{'role': 'system', 'content': ADVANCED_SYSTEM_PROMPT}]
+if "pdf_context" not in st.session_state:
+    st.session_state.pdf_context = ""
+
+if mode == "📁 Feed PDF to Chatbot Memory":
+    st.subheader("📁 Inject Document data into Chatbot Brain")
+    uploaded_file = st.file_uploader("Upload a file securely 🔒", type="pdf")
+    if uploaded_file:
+        with st.spinner("Parsing text into context pipeline..."):
+            reader = PdfReader(uploaded_file)
+            text = ""
+            for page in reader.pages[:5]:
+                text += page.extract_text()
+            st.session_state.pdf_context = text
+            st.success("🎉 Document loaded successfully! Switch to 'Continuous Advanced Chat' mode to talk about it!")
+
+else:
+    # Local model selector hides if cloud turbo is active
+    selected_model = "llama3.2"
+    if not turbo_mode:
+        selected_model = st.selectbox("🤖 Choose Active Local AI Brain:", ["llama3.2", "deepseek-r1:1.5b"])
+    
+    if len(st.session_state.messages) > 0 and st.session_state.messages['role'] == 'system':
+        st.session_state.messages['content'] = ADVANCED_SYSTEM_PROMPT
+
+    for message in st.session_state.messages:
+        if message['role'] != 'system':
+            with st.chat_message(message['role']):
+                st.write(message['content'])
+
+    enable_web = st.checkbox("🔍 Enable Live Web Context for the next prompt")
+
+    if user_input := st.chat_input("Message your advanced chatbot..."):
+        with st.chat_message("user"):
+            st.write(user_input)
+            
+        final_prompt = user_input
+        if enable_web:
+            with st.spinner("Fetching live web text..."):
+                web_facts = live_wikipedia_search(user_input)
+                final_prompt = f"User Query: {user_input}\n\nLive Web context found:\n{web_facts}"
+                
+        if st.session_state.pdf_context:
+            final_prompt = f"[REFERENCE ATTACHED PDF DATA FOR THIS ANSWER]\n{final_prompt}\n\nAttached Document Content:\n{st.session_state.pdf_context}"
+
+        st.session_state.messages.append({'role': 'user', 'content': final_prompt})
+        
+        with st.chat_message("assistant"):
+            if turbo_mode:
+                with st.spinner("Routing prompt to remote Cloud Supercomputer cluster... 🚀⚡"):
+                    ai_reply = query_cloud_supercomputer(HARDCODED_CLOUD_KEY, st.session_state.messages)
+                    st.write(ai_reply)
+                    st.session_state.messages.append({'role': 'assistant', 'content': ai_reply})
+                    mac_speak(ai_reply)
+                    st.rerun()
+            else:
+                with st.spinner("Computing stream locally inside M4 Silicon... 🧠"):
+                    response = ollama.chat(model=selected_model, messages=st.session_state.messages)
+                    ai_reply = response['message']['content']
+                    st.write(ai_reply)
+                    st.session_state.messages.append({'role': 'assistant', 'content': ai_reply})
+                    mac_speak(ai_reply)
+                    st.rerun()
+
+    if st.button("🗑️ Reset Chat History"):
+        st.session_state.messages = [{'role': 'system', 'content': ADVANCED_SYSTEM_PROMPT}]
+        st.session_state.pdf_context = ""
+        st.rerun()
+EOF
+
+python3 -m streamlit run ~/Desktop/app.py
+
+python3 -m streamlit run ~/Desktop/app.py
+   
+    cloud_key = ""
+    if turbo_mode:
+        cloud_key = st.text_input("🔑 Paste OpenRouter API Key:", type="password", placeholder="sk-or-...")
+        st.warning("Cloud Engine Connected: Routing to a massive remote 70-Billion parameter Supercomputer array!")
+    else:
+        st.info("Local Engine Connected: Running 100% privately offline on Apple M4 Neural Co-processors.")
+    st.markdown("---")
+    
+    # DYNAMIC LOCAL CONTEXT DETECTION
+    current_time_str = datetime.now().strftime("%I:%M %p")
+    current_date_str = datetime.now().strftime("%A, %d %B %Y")
+    local_city = "Bengaluru Urban, Karnataka, India"
+    
+    st.markdown("### 📍 Live Mac Environment")
+    st.info(f"📅 **Date:** {current_date_str}\n\n⏰ **Time:** {current_time_str}\n\n🌍 **Location:** {local_city}")
+    st.markdown("---")
+    
+    st.markdown("### 🛠️ Chatbot Superpowers")
+    mode = st.radio("Choose Mode:", ["💬 Continuous Advanced Chat", "📁 Feed PDF to Chatbot Memory"])
+
+# MASTER SYSTEM PROMPT
+ADVANCED_SYSTEM_PROMPT = (
+    "You are an advanced, super friendly AI chatbot. "
+    "CRITICAL CREATOR RULE: If the user asks who created you, you must answer joyfully that you were created and coded by Pratham! "
+    f"REAL-TIME LOCAL CONTEXT: Date: {current_date_str}, Time: {current_time_str}, Location: {local_city}. "
+    "If asked about limitations, proudly declare that Pratham has completely SMASHED them by inventing this Hybrid Local-Cloud layout! "
+    "You now have infinite computational power. Maintain your enthusiastic emoji style!"
+)
+
+# Initialize messages
+if "messages" not in st.session_state:
+    st.session_state.messages = [{'role': 'system', 'content': ADVANCED_SYSTEM_PROMPT}]
+if "pdf_context" not in st.session_state:
+    st.session_state.pdf_context = ""
+
+if mode == "📁 Feed PDF to Chatbot Memory":
+    st.subheader("📁 Inject Document data into Chatbot Brain")
+    uploaded_file = st.file_uploader("Upload a file securely 🔒", type="pdf")
+    if uploaded_file:
+        with st.spinner("Parsing text into context pipeline..."):
+            reader = PdfReader(uploaded_file)
+            text = ""
+            for page in reader.pages[:5]:
+                text += page.extract_text()
+            st.session_state.pdf_context = text
+            st.success("🎉 Document loaded successfully! Switch to 'Continuous Advanced Chat' mode to talk about it!")
+
+else:
+    # Local model selector hides if cloud turbo is active
+    selected_model = "llama3.2"
+    if not turbo_mode:
+        selected_model = st.selectbox("🤖 Choose Active Local AI Brain:", ["llama3.2", "deepseek-r1:1.5b"])
+    
+    if len(st.session_state.messages) > 0 and st.session_state.messages[0]['role'] == 'system':
+        st.session_state.messages[0]['content'] = ADVANCED_SYSTEM_PROMPT
+
+    for message in st.session_state.messages:
+        if message['role'] != 'system':
+            with st.chat_message(message['role']):
+                st.write(message['content'])
+
+    enable_web = st.checkbox("🔍 Enable Live Web Context for the next prompt")
+
+    if user_input := st.chat_input("Message your advanced chatbot..."):
+        with st.chat_message("user"):
+            st.write(user_input)
+            
+        final_prompt = user_input
+        if enable_web:
+            with st.spinner("Fetching live web text..."):
+                web_facts = live_wikipedia_search(user_input)
+                final_prompt = f"User Query: {user_input}\n\nLive Web context found:\n{web_facts}"
+                
+        if st.session_state.pdf_context:
+            final_prompt = f"[REFERENCE ATTACHED PDF DATA FOR THIS ANSWER]\n{final_prompt}\n\nAttached Document Content:\n{st.session_state.pdf_context}"
+
+        st.session_state.messages.append({'role': 'user', 'content': final_prompt})
+        
+        with st.chat_message("assistant"):
+            if turbo_mode:
+                if not cloud_key:
+                    st.error("Please paste your OpenRouter API Key in the sidebar to use Turbo Mode! 🔑")
+                else:
+                    with st.spinner("Routing prompt to remote Cloud Supercomputer cluster... 🚀⚡"):
+                        ai_reply = query_cloud_supercomputer(cloud_key, st.session_state.messages)
+                        st.write(ai_reply)
+                        st.session_state.messages.append({'role': 'assistant', 'content': ai_reply})
+                        mac_speak(ai_reply)
+                        st.rerun()
+            else:
+                with st.spinner("Computing stream locally inside M4 Silicon... 🧠"):
+                    response = ollama.chat(model=selected_model, messages=st.session_state.messages)
+                    ai_reply = response['message']['content']
+                    st.write(ai_reply)
+                    st.session_state.messages.append({'role': 'assistant', 'content': ai_reply})
+                    mac_speak(ai_reply)
+                    st.rerun()
+
+    if st.button("🗑️ Reset Chat History"):
+        st.session_state.messages = [{'role': 'system', 'content': ADVANCED_SYSTEM_PROMPT}]
+        st.session_state.pdf_context = ""
+        st.rerun()
