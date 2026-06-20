@@ -3,6 +3,7 @@ from groq import Groq
 from gtts import gTTS
 import requests
 import PyPDF2
+import subprocess
 
 app = Flask(__name__)
 
@@ -28,6 +29,24 @@ def web_search(query):
             snippets.append(item.get("snippet", ""))
     return " ".join(snippets)
 
+def check_command(message):
+    msg = message.lower()
+    apps = {
+        "safari": "Safari",
+        "notes": "Notes",
+        "calculator": "Calculator",
+        "calendar": "Calendar",
+        "music": "Music",
+        "mail": "Mail",
+        "terminal": "Terminal"
+    }
+    if "open" in msg:
+        for keyword, app_name in apps.items():
+            if keyword in msg:
+                subprocess.run(["open", "-a", app_name])
+                return f"Opening {app_name} for you."
+    return None
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -48,6 +67,13 @@ def upload_file():
 def chat_response():
     user_message = request.json.get("message")
     
+    command_result = check_command(user_message)
+    if command_result:
+        reply = command_result
+        tts = gTTS(text=reply, lang='en', slow=False)
+        tts.save("static/reply.mp3")
+        return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
+    
     context_message = user_message
     if uploaded_file_text:
         context_message = f"Document content: {uploaded_file_text}\n\nQuestion: {user_message}"
@@ -66,4 +92,4 @@ def chat_response():
     return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
