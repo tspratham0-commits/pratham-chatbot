@@ -12,11 +12,11 @@ h1 { text-align: center; color: #00d4ff; letter-spacing: 2px; }
 .bot-msg span { background: #2a2a40; color: #fff; padding: 8px 14px; border-radius: 14px; display: inline-block; max-width: 80%; }
 #input-area { display: flex; gap: 10px; margin-bottom: 10px; }
 #user-input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #00d4ff55; background: #1a1a2e; color: #fff; font-size: 14px; }
-button { padding: 12px 22px; background: #00d4ff; color: #0f0f1a; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; }
+button { padding: 12px 18px; background: #00d4ff; color: #0f0f1a; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
 .play-btn { background: #444; padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; border: none; color: white; margin-left: 8px; }
 #typing { color: #888; font-size: 12px; padding-left: 10px; display: none; }
-#upload-area { margin-bottom: 10px; }
-#status { color: #0f0; font-size: 12px; margin-left: 10px; }
+#upload-area { margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+#status { color: #0f0; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -24,6 +24,10 @@ button { padding: 12px 22px; background: #00d4ff; color: #0f0f1a; border: none; 
 <div id="upload-area">
 <input type="file" id="file-input" accept=".pdf"/>
 <button onclick="uploadFile()">Upload PDF</button>
+</div>
+<div id="upload-area">
+<input type="file" id="image-input" accept="image/*"/>
+<button onclick="uploadImage()">Analyze Image</button>
 <span id="status"></span>
 </div>
 <div id="chat-box"></div>
@@ -43,6 +47,23 @@ status.innerText = "Uploading...";
 const response = await fetch("/upload", { method: "POST", body: formData });
 const data = await response.json();
 status.innerText = data.status;
+}
+async function uploadImage() {
+const imageInput = document.getElementById("image-input");
+const status = document.getElementById("status");
+const chatBox = document.getElementById("chat-box");
+const typing = document.getElementById("typing");
+if (!imageInput.files[0]) return;
+const formData = new FormData();
+formData.append("image", imageInput.files[0]);
+status.innerText = "Analyzing image...";
+typing.style.display = "block";
+const response = await fetch("/vision", { method: "POST", body: formData });
+const data = await response.json();
+typing.style.display = "none";
+status.innerText = "";
+chatBox.innerHTML += '<div class="bot-msg"><span>' + data.reply + '</span> <button class="play-btn" onclick="playAudio()">Play</button></div>';
+chatBox.scrollTop = chatBox.scrollHeight;
 }
 async function sendMessage() {
 const input = document.getElementById("user-input");

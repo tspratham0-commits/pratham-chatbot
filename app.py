@@ -4,6 +4,7 @@ from gtts import gTTS
 import requests
 import PyPDF2
 import subprocess
+import base64
 
 app = Flask(__name__)
 
@@ -32,13 +33,8 @@ def web_search(query):
 def check_command(message):
     msg = message.lower()
     apps = {
-        "safari": "Safari",
-        "notes": "Notes",
-        "calculator": "Calculator",
-        "calendar": "Calendar",
-        "music": "Music",
-        "mail": "Mail",
-        "terminal": "Terminal"
+        "safari": "Safari", "notes": "Notes", "calculator": "Calculator",
+        "calendar": "Calendar", "music": "Music", "mail": "Mail", "terminal": "Terminal"
     }
     if "open" in msg:
         for keyword, app_name in apps.items():
@@ -62,6 +58,32 @@ def upload_file():
         text += page.extract_text()
     uploaded_file_text = text[:3000]
     return jsonify({"status": "File uploaded successfully"})
+
+@app.route("/vision", methods=["POST"])
+def vision_response():
+    file = request.files["image"]
+    file.save("uploaded_image.jpg")
+    
+    with open("uploaded_image.jpg", "rb") as img_file:
+        base64_image = base64.b64encode(img_file.read()).decode('utf-8')
+    
+    response = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Describe what you see in this image in detail."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                ]
+            }
+        ]
+    )
+    reply = response.choices[0].message.content
+    
+    tts = gTTS(text=reply, lang='en', slow=False)
+    tts.save("static/reply.mp3")
+    return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
 
 @app.route("/chat", methods=["POST"])
 def chat_response():
