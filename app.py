@@ -5,6 +5,10 @@ import requests
 import PyPDF2
 import subprocess
 import base64
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 app = Flask(__name__)
 
@@ -30,8 +34,18 @@ def web_search(query):
             snippets.append(item.get("snippet", ""))
     return " ".join(snippets)
 
+def browser_search(query):
+    options = webdriver.ChromeOptions()
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get("https://www.google.com/search?q=" + query.replace(" ", "+"))
+    time.sleep(60)
+    return f"I've opened a browser and searched for '{query}' on Google."
+
 def check_command(message):
     msg = message.lower()
+    if "search for" in msg and "browser" in msg:
+        query = msg.split("search for")[-1].strip()
+        return browser_search(query)
     apps = {
         "safari": "Safari", "notes": "Notes", "calculator": "Calculator",
         "calendar": "Calendar", "music": "Music", "mail": "Mail", "terminal": "Terminal"
