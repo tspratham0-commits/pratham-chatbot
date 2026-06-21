@@ -5,6 +5,8 @@ import requests
 import PyPDF2
 import subprocess
 import base64
+import json
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -19,7 +21,13 @@ with open("search_key.txt") as f:
     search_key = f.read().strip()
 
 client = Groq(api_key=api_key)
-conversation_history = []
+
+if os.path.exists("memory.json"):
+    with open("memory.json", "r") as f:
+        conversation_history = json.load(f)
+else:
+    conversation_history = []
+
 uploaded_file_text = ""
 
 def web_search(query):
@@ -77,10 +85,8 @@ def upload_file():
 def vision_response():
     file = request.files["image"]
     file.save("uploaded_image.jpg")
-    
     with open("uploaded_image.jpg", "rb") as img_file:
         base64_image = base64.b64encode(img_file.read()).decode('utf-8')
-    
     response = client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
@@ -94,7 +100,6 @@ def vision_response():
         ]
     )
     reply = response.choices[0].message.content
-    
     tts = gTTS(text=reply, lang='en', slow=False)
     tts.save("static/reply.mp3")
     return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
@@ -122,6 +127,9 @@ def chat_response():
     )
     reply = response.choices[0].message.content
     conversation_history.append({"role": "assistant", "content": reply})
+    
+    with open("memory.json", "w") as f:
+        json.dump(conversation_history, f)
     
     tts = gTTS(text=reply, lang='en', slow=False)
     tts.save("static/reply.mp3")
