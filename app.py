@@ -9,6 +9,8 @@ import json
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 
@@ -49,8 +51,26 @@ def browser_search(query):
     time.sleep(60)
     return f"I've opened a browser and searched for '{query}' on Google."
 
+def youtube_search(query):
+    options = webdriver.ChromeOptions()
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get("https://www.youtube.com")
+    time.sleep(3)
+    search_box = driver.find_element(By.NAME, "search_query")
+    search_box.send_keys(query)
+    search_box.send_keys(Keys.RETURN)
+    time.sleep(3)
+    first_video = driver.find_element(By.CSS_SELECTOR, "a#video-title")
+    video_title = first_video.get_attribute("title")
+    first_video.click()
+    time.sleep(60)
+    return f"I searched YouTube for '{query}' and opened the top result: {video_title}"
+
 def check_command(message):
     msg = message.lower()
+    if "youtube" in msg and ("search" in msg or "find" in msg):
+        query = msg.replace("search youtube for", "").replace("find on youtube", "").replace("youtube", "").strip()
+        return youtube_search(query)
     if "search for" in msg and "browser" in msg:
         query = msg.split("search for")[-1].strip()
         return browser_search(query)
