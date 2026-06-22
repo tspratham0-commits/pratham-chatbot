@@ -49,7 +49,7 @@ def browser_search(query):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.get("https://www.google.com/search?q=" + query.replace(" ", "+"))
     time.sleep(60)
-    return f"I've opened a browser and searched for '{query}' on Google."
+    return "I've opened a browser and searched for '" + query + "' on Google."
 
 def youtube_search(query):
     options = webdriver.ChromeOptions()
@@ -64,7 +64,7 @@ def youtube_search(query):
     video_title = first_video.get_attribute("title")
     first_video.click()
     time.sleep(60)
-    return f"I searched YouTube for '{query}' and opened the top result: {video_title}"
+    return "I searched YouTube for '" + query + "' and opened the top result: " + video_title
 
 def check_command(message):
     msg = message.lower()
@@ -82,8 +82,15 @@ def check_command(message):
         for keyword, app_name in apps.items():
             if keyword in msg:
                 subprocess.run(["open", "-a", app_name])
-                return f"Opening {app_name} for you."
+                return "Opening " + app_name + " for you."
     return None
+
+def safe_speak(text):
+    try:
+        tts = gTTS(text=text, lang='en', slow=False)
+        tts.save("static/reply.mp3")
+    except Exception as e:
+        print("Voice generation failed:", e)
 
 @app.route("/")
 def home():
@@ -114,14 +121,13 @@ def vision_response():
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "Describe what you see in this image in detail."},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64_image}}
                 ]
             }
         ]
     )
     reply = response.choices[0].message.content
-    tts = gTTS(text=reply, lang='en', slow=False)
-    tts.save("static/reply.mp3")
+    safe_speak(reply)
     return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
 
 @app.route("/chat", methods=["POST"])
@@ -131,13 +137,15 @@ def chat_response():
     command_result = check_command(user_message)
     if command_result:
         reply = command_result
-        tts = gTTS(text=reply, lang='en', slow=False)
-        tts.save("static/reply.mp3")
+        safe_speak(reply)
         return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
     
     context_message = user_message
+    lower_msg = user_message.lower()
+    if "help me" in lower_msg or "create a plan" in lower_msg or "how do i start" in lower_msg:
+        context_message = "The user wants help with a goal. Break this down into a clear, numbered, actionable step-by-step plan with 5 to 8 steps. Be specific and practical. User's goal: " + user_message
     if uploaded_file_text:
-        context_message = f"Document content: {uploaded_file_text}\n\nQuestion: {user_message}"
+        context_message = "Document content: " + uploaded_file_text + "\n\nQuestion: " + user_message
     
     conversation_history.append({"role": "user", "content": context_message})
     
@@ -151,8 +159,7 @@ def chat_response():
     with open("memory.json", "w") as f:
         json.dump(conversation_history, f)
     
-    tts = gTTS(text=reply, lang='en', slow=False)
-    tts.save("static/reply.mp3")
+    safe_speak(reply)
     return jsonify({"reply": reply, "audio": "/static/reply.mp3"})
 
 if __name__ == "__main__":
