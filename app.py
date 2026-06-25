@@ -155,14 +155,40 @@ def detect_creator_mode(message):
     return None
 
 
+def ai_tool_selector(message):
+    selector_prompt = (
+        "You are a tool-routing assistant. Given the user's message, decide which ONE "
+        "tool best fits their intent. Respond with ONLY a JSON object, nothing else, in this "
+        "exact format: {\"tool\": \"TOOL_NAME\", \"query\": \"extracted search or topic text\"}\n\n"
+        "Available tools:\n"
+        "- youtube_search: user wants to find and watch a video on YouTube\n"
+        "- browser_search: user wants to open a browser and search Google\n"
+        "- open_app: user wants to open an app like Safari, Notes, Calculator, Calendar, Music, Mail, Terminal\n"
+        "- none: just a normal conversation, question, or anything not matching the above\n\n"
+        "User message: \"" + message + "\"\n\n"
+        "Respond with ONLY the JSON object."
+    )
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": selector_prompt}],
+            temperature=0
+        )
+        raw = response.choices[0].message.content.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(raw)
+        return parsed.get("tool", "none"), parsed.get("query", "")
+    except Exception as e:
+        print("AI tool selector failed:", e)
+        return "none", ""
+
+
 def browser_search(query):
     try:
         options = webdriver.ChromeOptions()
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get("https://www.google.com/search?q=" + query.replace(" ", "+"))
-        time.sleep(15)
-        driver.quit()
-        return "I've opened a browser and searched for '" + query + "' on Google."
+        return "I've opened a browser and searched for '" + query + "' on Google. The window will stay open until you close it."
     except Exception as e:
         print("Browser search failed:", e)
         return "Sorry, I had trouble opening the browser for that search."
@@ -206,6 +232,12 @@ def check_command(message):
         topic = msg.replace("research", "").replace("deep", "").strip()
         return deep_research(topic)
 
+    apps = {
+        "safari": "Safari", "notes": "Notes", "calculator": "Calculator",
+        "calendar": "Calendar", "music": "Music", "mail": "Mail", "terminal": "Terminal"
+    }
+
+    keyword_matched = False
     if "youtube" in msg and ("search" in msg or "find" in msg):
         query = (msg.replace("search youtube for", "")
                     .replace("find on youtube", "")
@@ -219,15 +251,24 @@ def check_command(message):
                     .replace("browser", "").strip())
         return browser_search(query)
 
-    apps = {
-        "safari": "Safari", "notes": "Notes", "calculator": "Calculator",
-        "calendar": "Calendar", "music": "Music", "mail": "Mail", "terminal": "Terminal"
-    }
     if "open" in msg:
         for keyword, app_name in apps.items():
             if keyword in msg:
                 subprocess.run(["open", "-a", app_name])
                 return "Opening " + app_name + " for you."
+
+    intent_keywords = ["youtube", "video", "browser", "search", "open", "find", "google"]
+    if any(kw in msg for kw in intent_keywords):
+        tool, query = ai_tool_selector(message)
+        if tool == "youtube_search" and query:
+            return youtube_search(query)
+        elif tool == "browser_search" and query:
+            return browser_search(query)
+        elif tool == "open_app" and query:
+            for keyword, app_name in apps.items():
+                if keyword in query.lower():
+                    subprocess.run(["open", "-a", app_name])
+                    return "Opening " + app_name + " for you."
 
     return None
 
