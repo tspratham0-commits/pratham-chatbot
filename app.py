@@ -113,7 +113,7 @@ def deep_research(topic):
                         "Topic: " + topic + "\n\nResearch data:\n" + combined_info)
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": research_prompt}]
     )
     return response.choices[0].message.content
@@ -134,7 +134,7 @@ def creator_mode(request_text, content_type):
     }
     prompt = prompts.get(content_type, prompts["video_ideas"]) + request_text
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -332,7 +332,7 @@ def chat_response():
         conversation_history.append({"role": "user", "content": context_message})
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=conversation_history
         )
         reply = response.choices[0].message.content
