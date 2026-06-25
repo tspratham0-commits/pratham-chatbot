@@ -332,7 +332,7 @@ def chat_response():
         conversation_history.append({"role": "user", "content": context_message})
 
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="llama-3.1-8b-instant",
             messages=conversation_history
         )
         reply = response.choices[0].message.content
