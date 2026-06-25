@@ -388,6 +388,31 @@ def safe_speak(text, lang_code="en"):
         print("Voice generation failed:", e)
 
 
+def verify_and_correct(question, draft_answer):
+    verify_prompt = (
+        "You are a quality checker. Given a user's question and a draft answer, "
+        "respond with ONLY a JSON object: {\"ok\": true} if the answer genuinely "
+        "addresses the question, or {\"ok\": false, \"reason\": \"short reason\"} if it "
+        "is off-topic, irrelevant, or clearly does not answer what was asked.\n\n"
+        "Question: \"" + question + "\"\n"
+        "Draft answer: \"" + draft_answer[:500] + "\"\n\n"
+        "Respond with ONLY the JSON object."
+    )
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": verify_prompt}],
+            temperature=0
+        )
+        raw = response.choices[0].message.content.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(raw)
+        return parsed.get("ok", True), parsed.get("reason", "")
+    except Exception as e:
+        print("Self-verification check failed:", e)
+        return True, ""
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -484,6 +509,21 @@ def chat_response():
             messages=conversation_history
         )
         reply = response.choices[0].message.content
+
+        is_ok, reason = verify_and_correct(user_message, reply)
+        if not is_ok:
+            print("Self-correction triggered. Reason:", reason)
+            retry_prompt = (
+                "Your previous answer did not properly address the question. "
+                "Issue: " + reason + ". Please answer this question again, "
+                "more directly and accurately: " + user_message
+            )
+            retry_response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": retry_prompt}]
+            )
+            reply = retry_response.choices[0].message.content
+
         conversation_history.append({"role": "assistant", "content": reply})
 
         with open("memory.json", "w") as f:
