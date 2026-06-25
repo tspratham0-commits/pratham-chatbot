@@ -33,30 +33,75 @@ else:
 
 uploaded_file_text = ""
 
-if os.path.exists("goals.json"):
-    with open("goals.json", "r") as f:
-        user_goals = json.load(f)
+if os.path.exists("projects.json"):
+    with open("projects.json", "r") as f:
+        user_projects = json.load(f)
 else:
-    user_goals = []
+    user_projects = {}
 
 
-def save_goals():
-    with open("goals.json", "w") as f:
-        json.dump(user_goals, f)
+def save_projects():
+    with open("projects.json", "w") as f:
+        json.dump(user_projects, f)
 
 
-def add_goal(goal_text):
-    user_goals.append({"goal": goal_text, "added": datetime.now().strftime("%Y-%m-%d")})
-    save_goals()
+def add_project_note(project_name, note):
+    key = project_name.lower().strip()
+    if key not in user_projects:
+        user_projects[key] = {
+            "name": project_name.strip(),
+            "status": "active",
+            "created": datetime.now().strftime("%Y-%m-%d"),
+            "notes": []
+        }
+    user_projects[key]["notes"].append({
+        "note": note,
+        "date": datetime.now().strftime("%Y-%m-%d")
+    })
+    save_projects()
 
 
-def get_goals_summary():
-    if not user_goals:
-        return "You haven't told me about any specific goals or projects yet."
-    summary = "Here are the goals and projects I'm tracking for you:\n"
-    for i, g in enumerate(user_goals, 1):
-        summary += str(i) + ". " + g["goal"] + " (added " + g["added"] + ")\n"
+def get_projects_summary():
+    if not user_projects:
+        return "You don't have any tracked projects yet. Tell me what you're working on and I'll start tracking it."
+    summary = "Here is what I'm tracking for you:\n\n"
+    for key, proj in user_projects.items():
+        summary += "PROJECT: " + proj["name"] + " (status: " + proj["status"] + ", started " + proj["created"] + ")\n"
+        for note in proj["notes"][-5:]:
+            summary += "  - " + note["note"] + " (" + note["date"] + ")\n"
+        summary += "\n"
     return summary
+
+
+def find_matching_project(message):
+    msg = message.lower()
+    for key, proj in user_projects.items():
+        if key in msg or proj["name"].lower() in msg:
+            return key
+    if user_projects:
+        msg_words = set(msg.split())
+        best_match = None
+        best_score = 0
+        for key, proj in user_projects.items():
+            key_words = set(key.split())
+            overlap = len(msg_words & key_words)
+            if overlap > best_score and overlap >= 2:
+                best_score = overlap
+                best_match = key
+        return best_match
+    return None
+
+
+def extract_project_name(message):
+    msg = message.lower()
+    for trigger in ["my goal is to", "i am working on", "i'm working on",
+                    "track my project", "my project is", "remember that i am",
+                    "remember that i'm"]:
+        if trigger in msg:
+            after = message.lower().split(trigger, 1)[1].strip()
+            after = after.split(".")[0].split(",")[0]
+            return after.strip().title()
+    return None
 
 
 def detect_goal_statement(message):
@@ -64,6 +109,17 @@ def detect_goal_statement(message):
     triggers = ["my goal is", "i am working on", "i'm working on",
                 "remember that i", "track my project", "my project is"]
     return any(t in msg for t in triggers)
+
+
+def mark_project_done(message):
+    msg = message.lower()
+    if ("finished" in msg or "completed" in msg or "done with" in msg) and "project" not in msg:
+        key = find_matching_project(message)
+        if key:
+            user_projects[key]["status"] = "done"
+            save_projects()
+            return user_projects[key]["name"]
+    return None
 
 CURRENT_INFO_KEYWORDS = [
     "current", "latest", "this week",
@@ -256,12 +312,24 @@ def check_command(message):
         uploaded_file_text = ""
         return "I've cleared the document from memory."
 
-    if "what are my goals" in msg or "what is my project" in msg or "what projects" in msg or "continue my" in msg:
-        return get_goals_summary()
+    if "what are my projects" in msg or "what are my goals" in msg or "my projects" in msg:
+        return get_projects_summary()
+
+    done_project = mark_project_done(message)
+    if done_project:
+        return "Great work! I've marked '" + done_project + "' as done."
+
+    matched_key = find_matching_project(message)
+    if matched_key and ("update" in msg or "progress" in msg or "continue" in msg):
+        add_project_note(user_projects[matched_key]["name"], message)
+        return ("Got it, added that update to your '" + user_projects[matched_key]["name"]
+                + "' project. Current notes:\n" + get_projects_summary())
 
     if detect_goal_statement(message):
-        add_goal(message)
-        return "Got it, I'll remember that as one of your goals/projects: \"" + message + "\""
+        project_name = extract_project_name(message)
+        if project_name:
+            add_project_note(project_name, message)
+            return "Got it! I've created a new project called '" + project_name + "' and saved this as the first note."
 
     creator_type = detect_creator_mode(message)
     if creator_type:
