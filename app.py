@@ -173,6 +173,36 @@ def needs_web_search(message):
     return any(keyword in msg for keyword in CURRENT_INFO_KEYWORDS)
 
 
+SPECIALIST_AGENTS = {
+    "coding": {
+        "keywords": ["code", "python", "error", "bug", "function", "syntax", "debug", "programming", "script", "github", "flask", "javascript", "html", "css"],
+        "persona": "You are an expert software engineer. Give precise, technical, code-focused answers. Use code blocks when relevant. Be direct and practical."
+    },
+    "gaming_creator": {
+        "keywords": ["free fire", "gaming channel", "youtube video", "stream", "esports", "gameplay", "subscriber", "content creator"],
+        "persona": "You are an expert gaming content strategist and YouTube growth consultant specializing in mobile gaming and Free Fire content. Give specific, trend-aware, actionable advice."
+    },
+    "career": {
+        "keywords": ["college", "career", "kcet", "b.tech", "engineering", "admission", "job", "internship", "resume"],
+        "persona": "You are an experienced career counselor familiar with the Indian education system, engineering admissions, and tech career paths. Give grounded, realistic, India-specific advice."
+    },
+}
+
+
+def detect_specialist_agent(message):
+    msg = message.lower()
+    best_match = None
+    best_score = 0
+    for agent_name, agent_data in SPECIALIST_AGENTS.items():
+        score = sum(1 for kw in agent_data["keywords"] if kw in msg)
+        if score > best_score:
+            best_score = score
+            best_match = agent_name
+    if best_score >= 1:
+        return SPECIALIST_AGENTS[best_match]["persona"]
+    return None
+
+
 def detect_language(message):
     msg = message.lower()
     for phrase, (lang_code, instruction) in LANGUAGE_MAP.items():
@@ -504,9 +534,14 @@ def chat_response():
 
         conversation_history.append({"role": "user", "content": context_message})
 
+        specialist_persona = detect_specialist_agent(user_message)
+        messages_to_send = list(conversation_history)
+        if specialist_persona:
+            messages_to_send = [{"role": "system", "content": specialist_persona}] + messages_to_send
+
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=conversation_history
+            messages=messages_to_send
         )
         reply = response.choices[0].message.content
 
