@@ -33,6 +33,38 @@ else:
 
 uploaded_file_text = ""
 
+if os.path.exists("goals.json"):
+    with open("goals.json", "r") as f:
+        user_goals = json.load(f)
+else:
+    user_goals = []
+
+
+def save_goals():
+    with open("goals.json", "w") as f:
+        json.dump(user_goals, f)
+
+
+def add_goal(goal_text):
+    user_goals.append({"goal": goal_text, "added": datetime.now().strftime("%Y-%m-%d")})
+    save_goals()
+
+
+def get_goals_summary():
+    if not user_goals:
+        return "You haven't told me about any specific goals or projects yet."
+    summary = "Here are the goals and projects I'm tracking for you:\n"
+    for i, g in enumerate(user_goals, 1):
+        summary += str(i) + ". " + g["goal"] + " (added " + g["added"] + ")\n"
+    return summary
+
+
+def detect_goal_statement(message):
+    msg = message.lower()
+    triggers = ["my goal is", "i am working on", "i'm working on",
+                "remember that i", "track my project", "my project is"]
+    return any(t in msg for t in triggers)
+
 CURRENT_INFO_KEYWORDS = [
     "current", "latest", "this week",
     "this month", "this year", "news",
@@ -223,6 +255,13 @@ def check_command(message):
     if "forget the document" in msg or "clear document" in msg or "forget document" in msg:
         uploaded_file_text = ""
         return "I've cleared the document from memory."
+
+    if "what are my goals" in msg or "what is my project" in msg or "what projects" in msg or "continue my" in msg:
+        return get_goals_summary()
+
+    if detect_goal_statement(message):
+        add_goal(message)
+        return "Got it, I'll remember that as one of your goals/projects: \"" + message + "\""
 
     creator_type = detect_creator_mode(message)
     if creator_type:
