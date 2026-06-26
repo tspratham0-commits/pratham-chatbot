@@ -3,94 +3,167 @@
 <head>
 <title>NOVA</title>
 <style>
-body { font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #0f0f1a; color: #fff; }
-h1 { text-align: center; color: #00d4ff; letter-spacing: 2px; }
-#chat-box { background: #1a1a2e; height: 380px; overflow-y: auto; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #00d4ff33; }
+body { font-family: Arial, sans-serif; max-width: 750px; margin: 0 auto; padding: 20px; background: #0f0f1a; color: #fff; }
+h1 { text-align: center; color: #00d4ff; letter-spacing: 2px; margin-bottom: 4px; }
+.subtitle { text-align: center; color: #888; font-size: 12px; margin-bottom: 16px; }
+
+.feature-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; justify-content: center; }
+.feature-btn { background: #1a1a2e; border: 1px solid #00d4ff55; color: #00d4ff; padding: 6px 10px; border-radius: 16px; font-size: 11px; cursor: pointer; transition: background 0.15s; }
+.feature-btn:hover { background: #00d4ff22; }
+
+#chat-box { background: #1a1a2e; height: 360px; overflow-y: auto; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #00d4ff33; }
+.welcome-msg { color: #aaa; font-size: 13px; line-height: 1.6; padding: 10px; background: #15152a; border-radius: 8px; margin-bottom: 10px; }
 .user-msg { text-align: right; margin: 10px 0; }
 .user-msg span { background: #00d4ff; color: #0f0f1a; padding: 8px 14px; border-radius: 14px; display: inline-block; max-width: 80%; }
 .bot-msg { text-align: left; margin: 10px 0; }
-.bot-msg span { background: #2a2a40; color: #fff; padding: 8px 14px; border-radius: 14px; display: inline-block; max-width: 80%; }
+.bot-msg span { background: #2a2a40; color: #fff; padding: 8px 14px; border-radius: 14px; display: inline-block; max-width: 80%; white-space: pre-wrap; }
+
 #input-area { display: flex; gap: 10px; margin-bottom: 10px; }
 #user-input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #00d4ff55; background: #1a1a2e; color: #fff; font-size: 14px; }
-button { padding: 12px 18px; background: #00d4ff; color: #0f0f1a; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
+button.send-btn { padding: 12px 18px; background: #00d4ff; color: #0f0f1a; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
 .play-btn { background: #444; padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; border: none; color: white; margin-left: 8px; }
-#typing { color: #888; font-size: 12px; padding-left: 10px; display: none; }
-#upload-area { margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+#typing { color: #888; font-size: 12px; padding-left: 10px; display: none; margin-bottom: 8px; }
+
+.upload-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; }
+.upload-row label { color: #888; }
 #status { color: #0f0; font-size: 12px; }
+
+.error-banner { background: #3a1a1a; border: 1px solid #e24b4a; color: #ffb3b0; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; display: none; }
 </style>
 </head>
 <body>
 <h1>NOVA</h1>
-<div id="upload-area">
-<input type="file" id="file-input" accept=".pdf"/>
-<button onclick="uploadFile()">Upload PDF</button>
+<div class="subtitle">Your personal AI assistant — click a feature below or just type</div>
+
+<div class="error-banner" id="error-banner"></div>
+
+<div class="feature-bar">
+<button class="feature-btn" onclick="quickSend('what are my projects')">My Projects</button>
+<button class="feature-btn" onclick="quickSend('what time is it')">Date/Time</button>
+<button class="feature-btn" onclick="quickSend('do deep research on best gaming phones under 20000')">Deep Research</button>
+<button class="feature-btn" onclick="quickSend('give me video ideas for free fire')">Video Ideas</button>
+<button class="feature-btn" onclick="quickSend('give me titles for my free fire video')">Video Titles</button>
+<button class="feature-btn" onclick="quickSend('open calculator')">Open App</button>
+<button class="feature-btn" onclick="quickSend('search youtube for free fire highlights')">YouTube Search</button>
+<button class="feature-btn" onclick="quickSend('help me launch a gaming channel')">Make a Plan</button>
 </div>
-<div id="upload-area">
+
+<div class="upload-row">
+<label>📄 Upload PDF:</label>
+<input type="file" id="file-input" accept=".pdf"/>
+<button class="feature-btn" onclick="uploadFile()">Upload</button>
+<label style="margin-left:10px;">🖼️ Analyze Image:</label>
 <input type="file" id="image-input" accept="image/*"/>
-<button onclick="uploadImage()">Analyze Image</button>
+<button class="feature-btn" onclick="uploadImage()">Analyze</button>
 <span id="status"></span>
 </div>
-<div id="chat-box"></div>
+
+<div id="chat-box">
+<div class="welcome-msg">
+👋 Hi! I'm NOVA. Try clicking a button above, or type things like:<br>
+• "my goal is to launch a Free Fire channel" — I'll track it as a project<br>
+• "what are my projects" — see everything I'm tracking for you<br>
+• "in hindi" or "in kannada" added to any message — I'll reply in that language<br>
+• "forget the document" — clears any uploaded PDF from memory
+</div>
+</div>
+
 <div id="typing">NOVA is thinking...</div>
 <div id="input-area">
 <input type="text" id="user-input" placeholder="Talk to NOVA..."/>
-<button onclick="sendMessage()">Send</button>
+<button class="send-btn" onclick="sendMessage()">Send</button>
 </div>
+
 <script>
+function quickSend(text) {
+    document.getElementById("user-input").value = text;
+    sendMessage();
+}
+
+function showError(msg) {
+    const banner = document.getElementById("error-banner");
+    banner.innerText = "⚠️ " + msg;
+    banner.style.display = "block";
+    setTimeout(() => { banner.style.display = "none"; }, 6000);
+}
+
 async function uploadFile() {
-const fileInput = document.getElementById("file-input");
-const status = document.getElementById("status");
-if (!fileInput.files[0]) return;
-const formData = new FormData();
-formData.append("file", fileInput.files[0]);
-status.innerText = "Uploading...";
-const response = await fetch("/upload", { method: "POST", body: formData });
-const data = await response.json();
-status.innerText = data.status;
+    const fileInput = document.getElementById("file-input");
+    const status = document.getElementById("status");
+    if (!fileInput.files[0]) { showError("Please choose a PDF file first."); return; }
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    status.innerText = "Uploading...";
+    try {
+        const response = await fetch("/upload", { method: "POST", body: formData });
+        const data = await response.json();
+        status.innerText = data.status;
+    } catch (e) {
+        showError("Could not upload the file. Is NOVA's server running?");
+        status.innerText = "";
+    }
 }
+
 async function uploadImage() {
-const imageInput = document.getElementById("image-input");
-const status = document.getElementById("status");
-const chatBox = document.getElementById("chat-box");
-const typing = document.getElementById("typing");
-if (!imageInput.files[0]) return;
-const formData = new FormData();
-formData.append("image", imageInput.files[0]);
-status.innerText = "Analyzing image...";
-typing.style.display = "block";
-const response = await fetch("/vision", { method: "POST", body: formData });
-const data = await response.json();
-typing.style.display = "none";
-status.innerText = "";
-chatBox.innerHTML += '<div class="bot-msg"><span>' + data.reply + '</span> <button class="play-btn" onclick="playAudio()">Play</button></div>';
-chatBox.scrollTop = chatBox.scrollHeight;
+    const imageInput = document.getElementById("image-input");
+    const status = document.getElementById("status");
+    const chatBox = document.getElementById("chat-box");
+    const typing = document.getElementById("typing");
+    if (!imageInput.files[0]) { showError("Please choose an image first."); return; }
+    const formData = new FormData();
+    formData.append("image", imageInput.files[0]);
+    status.innerText = "Analyzing image...";
+    typing.style.display = "block";
+    try {
+        const response = await fetch("/vision", { method: "POST", body: formData });
+        const data = await response.json();
+        typing.style.display = "none";
+        status.innerText = "";
+        chatBox.innerHTML += '<div class="bot-msg"><span>' + data.reply + '</span> <button class="play-btn" onclick="playAudio()">Play</button></div>';
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (e) {
+        typing.style.display = "none";
+        status.innerText = "";
+        showError("Could not analyze the image. Please try again.");
+    }
 }
+
 async function sendMessage() {
-const input = document.getElementById("user-input");
-const chatBox = document.getElementById("chat-box");
-const typing = document.getElementById("typing");
-const message = input.value.trim();
-if (!message) return;
-chatBox.innerHTML += '<div class="user-msg"><span>' + message + '</span></div>';
-input.value = "";
-chatBox.scrollTop = chatBox.scrollHeight;
-typing.style.display = "block";
-const response = await fetch("/chat", {
-method: "POST",
-headers: {"Content-Type": "application/json"},
-body: JSON.stringify({message: message})
-});
-const data = await response.json();
-typing.style.display = "none";
-chatBox.innerHTML += '<div class="bot-msg"><span>' + data.reply + '</span> <button class="play-btn" onclick="playAudio()">Play</button></div>';
-chatBox.scrollTop = chatBox.scrollHeight;
+    const input = document.getElementById("user-input");
+    const chatBox = document.getElementById("chat-box");
+    const typing = document.getElementById("typing");
+    const message = input.value.trim();
+    if (!message) return;
+    chatBox.innerHTML += '<div class="user-msg"><span>' + message + '</span></div>';
+    input.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+    typing.style.display = "block";
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({message: message})
+        });
+        if (!response.ok) {
+            throw new Error("Server returned an error");
+        }
+        const data = await response.json();
+        typing.style.display = "none";
+        chatBox.innerHTML += '<div class="bot-msg"><span>' + data.reply + '</span> <button class="play-btn" onclick="playAudio()">Play</button></div>';
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (e) {
+        typing.style.display = "none";
+        showError("Something went wrong talking to NOVA. Check that the server is still running.");
+    }
 }
+
 function playAudio() {
-const audio = new Audio("/static/reply.mp3?t=" + new Date().getTime());
-audio.play();
+    const audio = new Audio("/static/reply.mp3?t=" + new Date().getTime());
+    audio.play().catch(() => showError("Could not play audio for this reply."));
 }
+
 document.getElementById("user-input").addEventListener("keypress", function(e) {
-if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter") sendMessage();
 });
 </script>
 </body>
