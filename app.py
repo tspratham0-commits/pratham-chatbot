@@ -17,8 +17,55 @@ import time
 
 app = Flask(__name__)
 
+
+def setup_wizard():
+    print("\n" + "=" * 60)
+    print("  Welcome to NOVA — let's get you set up!")
+    print("=" * 60)
+
+    if not os.path.exists("key.txt"):
+        print("\n[1/2] NOVA needs a Groq API key to power its chat brain.")
+        print("This is free. Steps:")
+        print("  1. Open this link in your browser: https://console.groq.com")
+        print("  2. Sign up (or log in)")
+        print("  3. Find 'API Keys' and click 'Create API Key'")
+        print("  4. Copy the key")
+        key_input = input("\nPaste your Groq API key here and press Enter: ").strip()
+        with open("key.txt", "w") as f:
+            f.write(key_input)
+        print("Saved! key.txt created.\n")
+    else:
+        print("\n[1/2] Groq API key found (key.txt) — skipping.")
+
+    if not os.path.exists("search_key.txt"):
+        print("\n[2/2] NOVA needs a Serper API key for web search features.")
+        print("This is also free. Steps:")
+        print("  1. Open this link in your browser: https://serper.dev")
+        print("  2. Sign up (or log in)")
+        print("  3. Copy your API key from the dashboard")
+        search_key_input = input("\nPaste your Serper API key here and press Enter "
+                                  "(or press Enter to skip — search features won't work): ").strip()
+        with open("search_key.txt", "w") as f:
+            f.write(search_key_input)
+        print("Saved! search_key.txt created.\n")
+    else:
+        print("\n[2/2] Serper API key found (search_key.txt) — skipping.")
+
+    print("=" * 60)
+    print("  Setup complete! Starting NOVA...")
+    print("=" * 60 + "\n")
+
+
+if not os.path.exists("key.txt") or not os.path.exists("search_key.txt"):
+    setup_wizard()
+
 with open("key.txt") as f:
     api_key = f.read().strip()
+
+if not api_key:
+    print("\n⚠️  key.txt is empty! NOVA cannot start without a valid Groq API key.")
+    print("Please add your key to key.txt and run this again.\n")
+    exit(1)
 
 with open("search_key.txt") as f:
     search_key = f.read().strip()
@@ -147,6 +194,8 @@ def get_current_datetime_info():
 
 
 def web_search(query):
+    if not search_key:
+        return ""
     url = "https://google.serper.dev/search"
     headers = {"X-API-KEY": search_key, "Content-Type": "application/json"}
     payload = {"q": query}
@@ -420,11 +469,13 @@ def safe_speak(text, lang_code="en"):
 
 def verify_and_correct(question, draft_answer):
     verify_prompt = (
-        "You are a quality checker. Given a user's question and a draft answer, "
-        "respond with ONLY a JSON object: {\"ok\": true} if the answer genuinely "
-        "addresses the question, or {\"ok\": false, \"reason\": \"short reason\"} if it "
-        "is off-topic, irrelevant, or clearly does not answer what was asked.\n\n"
-        "Question: \"" + question + "\"\n"
+        "You are a lenient quality checker. Given a user's message and a draft answer, "
+        "respond with ONLY a JSON object: {\"ok\": true} unless the answer is CLEARLY "
+        "and SEVERELY broken — completely unrelated gibberish, a factual contradiction, "
+        "or a refusal with no explanation. Casual greetings, conversational replies, "
+        "follow-up questions, and reasonable answers should ALWAYS be marked {\"ok\": true}. "
+        "Only mark {\"ok\": false, \"reason\": \"short reason\"} for genuinely broken answers.\n\n"
+        "User message: \"" + question + "\"\n"
         "Draft answer: \"" + draft_answer[:500] + "\"\n\n"
         "Respond with ONLY the JSON object."
     )
@@ -548,14 +599,16 @@ def chat_response():
         is_ok, reason = verify_and_correct(user_message, reply)
         if not is_ok:
             print("Self-correction triggered. Reason:", reason)
-            retry_prompt = (
-                "Your previous answer did not properly address the question. "
-                "Issue: " + reason + ". Please answer this question again, "
-                "more directly and accurately: " + user_message
-            )
+            retry_messages = list(messages_to_send[:-1])
+            retry_messages.append({
+                "role": "user",
+                "content": context_message + "\n\n(Note: a previous attempt at this "
+                           "did not properly address the question because: " + reason
+                           + ". Please answer directly and accurately this time.)"
+            })
             retry_response = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": retry_prompt}]
+                messages=retry_messages
             )
             reply = retry_response.choices[0].message.content
 
