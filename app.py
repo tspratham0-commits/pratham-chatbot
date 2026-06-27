@@ -301,7 +301,7 @@ def creator_mode(request_text, content_type):
     }
     prompt = prompts.get(content_type, prompts["video_ideas"]) + request_text
     response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -390,6 +390,12 @@ def check_command(message):
     if "forget the document" in msg or "clear document" in msg or "forget document" in msg:
         uploaded_file_text = ""
         return "I've cleared the document from memory."
+
+    if "forget our conversation" in msg or "clear conversation" in msg or "start fresh" in msg or "reset memory" in msg:
+        conversation_history.clear()
+        with open("memory.json", "w") as f:
+            json.dump(conversation_history, f)
+        return "I've cleared our conversation history. Starting fresh!"
 
     if "what are my projects" in msg or "what are my goals" in msg or "my projects" in msg:
         return get_projects_summary()
@@ -596,7 +602,12 @@ def chat_response():
         )
         reply = response.choices[0].message.content
 
-        is_ok, reason = verify_and_correct(user_message, reply)
+        is_plan_request = "help me" in lower_msg or "create a plan" in lower_msg or "how do i start" in lower_msg
+        if not is_plan_request:
+            is_ok, reason = verify_and_correct(user_message, reply)
+        else:
+            is_ok, reason = True, ""
+
         if not is_ok:
             print("Self-correction triggered. Reason:", reason)
             retry_messages = list(messages_to_send[:-1])
