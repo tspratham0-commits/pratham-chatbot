@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>NOVA Benchmark Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, Arial, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #0f0f1a;
+    color: #fff;
+}
+h1 { color: #00d4ff; margin-bottom: 4px; }
+.subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.metric-card { background: #1a1a2e; border-radius: 10px; padding: 16px; border: 1px solid #00d4ff33; }
+.metric-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+.metric-value { font-size: 26px; font-weight: bold; }
+.metric-delta { font-size: 12px; margin-top: 4px; }
+.delta-up { color: #1d9e75; }
+.delta-down { color: #e24b4a; }
+.delta-flat { color: #888; }
+
+.chart-section { background: #1a1a2e; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #00d4ff33; }
+.chart-title { font-size: 15px; margin-bottom: 14px; color: #fff; }
+.chart-wrapper { position: relative; width: 100%; height: 260px; }
+
+.category-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.category-table th { text-align: left; padding: 8px 12px; color: #888; border-bottom: 1px solid #333; font-weight: normal; }
+.category-table td { padding: 8px 12px; border-bottom: 1px solid #222; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+.badge-pass { background: #1d9e7533; color: #1d9e75; }
+.badge-fail { background: #e24b4a33; color: #e24b4a; }
+
+.no-data { text-align: center; padding: 60px 20px; color: #888; }
+.no-data code { background: #1a1a2e; padding: 8px 14px; border-radius: 6px; display: inline-block; margin-top: 12px; color: #00d4ff; }
+
+.recent-failures { margin-top: 12px; }
+.failure-item { background: #2a1a1a; border-left: 3px solid #e24b4a; padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+.failure-item .fid { color: #e24b4a; font-weight: bold; }
+.failure-item .freason { color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1>NOVA Benchmark Dashboard</h1>
+<div class="subtitle" id="subtitle">Loading benchmark_results.json...</div>
+
+<div id="content"></div>
+
+<script>
+async function loadDashboard() {
+    let history;
+    try {
+        const response = await fetch('benchmark_results.json');
+        if (!response.ok) throw new Error('not found');
+        history = await response.json();
+    } catch (e) {
+        document.getElementById('content').innerHTML =
+            '<div class="no-data">' +
+            'No benchmark_results.json found yet.<br><br>' +
+            'Run the benchmark first:<br>' +
+            '<code>python3 benchmark.py</code><br><br>' +
+            'Then refresh this page (make sure dashboard.html is in the same folder).' +
+            '</div>';
+        document.getElementById('subtitle').innerText = 'No data yet';
+        return;
+    }
+
+    if (!history || history.length === 0) {
+        document.getElementById('content').innerHTML =
+            '<div class="no-data">benchmark_results.json is empty. Run python3 benchmark.py first.</div>';
+        return;
+    }
+
+    const latest = history[history.length - 1];
+    const previous = history.length > 1 ? history[history.length - 2] : null;
+
+    document.getElementById('subtitle').innerText =
+        history.length + ' run(s) recorded — latest: ' + latest.timestamp;
+
+    function deltaHtml(curr, prev, unit, lowerIsBetter) {
+        if (prev === null || prev === undefined) return '<span class="metric-delta delta-flat">first run</span>';
+        const diff = curr - prev;
+        if (Math.abs(diff) < 0.05) return '<span class="metric-delta delta-flat">no change</span>';
+        const improved = lowerIsBetter ? diff < 0 : diff > 0;
+        const sign = diff > 0 ? '+' : '';
+        const cls = improved ? 'delta-up' : 'delta-down';
+        return '<span class="metric-delta ' + cls + '">' + sign + diff.toFixed(1) + unit + '</span>';
+    }
+
+    let html = '';
+
+    html += '<div class="metric-grid">';
+    html += '<div class="metric-card"><div class="metric-label">Pass rate</div>' +
+            '<div class="metric-value">' + latest.pass_rate + '%</div>' +
+            deltaHtml(latest.pass_rate, previous ? previous.pass_rate : null, ' pts', false) + '</div>';
+    html += '<div class="metric-card"><div class="metric-label">Avg response time</div>' +
+            '<div class="metric-value">' + latest.average_response_seconds + 's</div>' +
+            deltaHtml(latest.average_response_seconds, previous ? previous.average_response_seconds : null, 's', true) + '</div>';
+    html += '<div class="metric-card"><div class="metric-label">Total runs</div>' +
+            '<div class="metric-value">' + history.length + '</div></div>';
+    html += '<div class="metric-card"><div class="metric-label">Tests per run</div>' +
+            '<div class="metric-value">' + latest.total + '</div></div>';
+    html += '</div>';
+
+    html += '<div class="chart-section"><div class="chart-title">Pass rate over time</div>' +
+            '<div class="chart-wrapper"><canvas id="passRateChart" role="img" aria-label="Pass rate trend across benchmark runs">Pass rate trend chart</canvas></div></div>';
+
+    html += '<div class="chart-section"><div class="chart-title">Average response time over time</div>' +
+            '<div class="chart-wrapper"><canvas id="speedChart" role="img" aria-label="Average response time trend across benchmark runs">Response time trend chart</canvas></div></div>';
+
+    html += '<div class="chart-section"><div class="chart-title">Latest run — results by category</div>';
+    html += '<table class="category-table"><tr><th>Category</th><th>Passed</th><th>Status</th></tr>';
+    for (const [cat, stats] of Object.entries(latest.category_stats)) {
+        const allPassed = stats.passed === stats.total;
+        html += '<tr><td>' + cat + '</td><td>' + stats.passed + '/' + stats.total + '</td>' +
+                '<td><span class="badge ' + (allPassed ? 'badge-pass' : 'badge-fail') + '">' +
+                (allPassed ? 'OK' : 'NEEDS ATTENTION') + '</span></td></tr>';
+    }
+    html += '</table></div>';
+
+    const failures = latest.results.filter(r => !r.passed);
+    if (failures.length > 0) {
+        html += '<div class="chart-section"><div class="chart-title">Failures in latest run</div><div class="recent-failures">';
+        for (const f of failures) {
+            html += '<div class="failure-item"><span class="fid">' + f.id + '</span> (' + f.category + ')' +
+                    '<div class="freason">' + (f.error || 'Did not meet success criteria') + '</div></div>';
+        }
+        html += '</div></div>';
+    } else {
+        html += '<div class="chart-section"><div class="chart-title">No failures in latest run — all tests passed.</div></div>';
+    }
+
+    html += '<div class="chart-section"><div class="chart-title">Slowest tests in latest run</div>';
+    const sortedBySpeed = [...latest.results].sort((a, b) => b.elapsed_seconds - a.elapsed_seconds).slice(0, 5);
+    html += '<table class="category-table"><tr><th>Test</th><th>Category</th><th>Time</th></tr>';
+    for (const r of sortedBySpeed) {
+        html += '<tr><td>' + r.id + '</td><td>' + r.category + '</td><td>' + r.elapsed_seconds + 's</td></tr>';
+    }
+    html += '</table></div>';
+
+    document.getElementById('content').innerHTML = html;
+
+    const labels = history.map((h, i) => 'Run ' + (i + 1));
+
+    new Chart(document.getElementById('passRateChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Pass rate %',
+                data: history.map(h => h.pass_rate),
+                borderColor: '#00d4ff',
+                backgroundColor: 'rgba(0,212,255,0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: 6,
+                pointBackgroundColor: '#00d4ff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { color: '#888', callback: (v) => v + '%' }, grid: { color: '#222' } },
+                x: { ticks: { color: '#888' }, grid: { color: '#222' } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('speedChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Avg response (s)',
+                data: history.map(h => h.average_response_seconds),
+                borderColor: '#1d9e75',
+                backgroundColor: 'rgba(29,158,117,0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: 6,
+                pointBackgroundColor: '#1d9e75'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, ticks: { color: '#888', callback: (v) => v + 's' }, grid: { color: '#222' } },
+                x: { ticks: { color: '#888' }, grid: { color: '#222' } }
+            }
+        }
+    });
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
