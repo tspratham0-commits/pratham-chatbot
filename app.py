@@ -72,6 +72,41 @@ with open("search_key.txt") as f:
 
 client = Groq(api_key=api_key)
 
+
+def groq_call_with_retry(model, messages, max_retries=2, timeout_seconds=45):
+    """Wraps a Groq chat completion call with retry logic and an enforced
+    timeout. We use a separate thread + timeout instead of passing timeout
+    directly to the SDK call, since that parameter may be silently ignored
+    by the underlying client and never actually interrupt a slow response.
+    This addresses occasional slow responses we measured in benchmark
+    testing (planning and coding questions sometimes hang)."""
+    import concurrent.futures
+
+    def make_call(call_model):
+        response = client.chat.completions.create(
+            model=call_model,
+            messages=messages
+        )
+        return response.choices[0].message.content
+
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(make_call, model)
+                return future.result(timeout=timeout_seconds)
+        except concurrent.futures.TimeoutError:
+            last_error = "Timed out after " + str(timeout_seconds) + "s"
+            print("Groq call attempt " + str(attempt + 1) + " timed out, retrying with faster model...")
+            model = "llama-3.1-8b-instant"
+        except Exception as e:
+            last_error = e
+            print("Groq call attempt " + str(attempt + 1) + " failed (" + str(e) + "), retrying with faster model...")
+            model = "llama-3.1-8b-instant"
+    print("All retry attempts failed:", last_error)
+    return ("I'm having trouble generating a response right now due to high load. "
+            "Please try asking again in a moment.")
+
 if os.path.exists("memory.json"):
     with open("memory.json", "r") as f:
         conversation_history = json.load(f)
@@ -291,7 +326,11 @@ def creator_mode(request_text, content_type):
         "video_ideas": ("Generate 10 specific, engaging YouTube video ideas for a Free Fire "
                          "gaming channel. Make them catchy and trending-style. Topic context: "),
         "titles": ("Generate 8 click-worthy, SEO-friendly YouTube titles for a Free Fire "
-                   "gaming video. Keep them under 60 characters each. Topic context: "),
+                   "gaming video. Each title should be specific, attention-grabbing, and use "
+                   "most of the available space (aim for 40-60 characters, not short generic "
+                   "phrases). Include numbers, emotional hooks, or curiosity gaps where natural. "
+                   "Avoid vague titles like 'Free Fire Wins' or 'FF gameplay' - be specific about "
+                   "what happens in the video. Topic context: "),
         "script": ("Write a short engaging YouTube video script outline (intro, main points, "
                    "outro) for a Free Fire gaming video. Topic context: "),
         "thumbnail": ("Describe 5 eye-catching thumbnail concepts (text, imagery, colors) "
@@ -596,11 +635,7 @@ def chat_response():
         if specialist_persona:
             messages_to_send = [{"role": "system", "content": specialist_persona}] + messages_to_send
 
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages_to_send
-        )
-        reply = response.choices[0].message.content
+        reply = groq_call_with_retry("llama-3.1-8b-instant", messages_to_send)
 
         is_plan_request = "help me" in lower_msg or "create a plan" in lower_msg or "how do i start" in lower_msg
         if not is_plan_request:
